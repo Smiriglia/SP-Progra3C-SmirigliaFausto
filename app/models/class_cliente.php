@@ -1,5 +1,6 @@
 <?php
     require_once ("./capa_datos/class_manejador_archivos.php");
+    require_once ("./capa_datos/AccesoDatos.php");
     class Cliente
     {
         public $nro_cliente;
@@ -67,33 +68,58 @@
             return "Pais: " . $this->pais . "  Ciudad: " . $this->ciudad . "  Telefono: " . $this->telefono;
         }
 
-        public function Insertar($rutaArchivo = "./datos/hoteles.json")
+        public function Insertar()
         {
             if (!isset($this->nro_cliente))
                 return false;
 
-            $clientes = Cliente::TraerTodo($rutaArchivo);
-            $flagEncontrado = false;
-
-            for ($i = 0; $i < count($clientes); $i++) {
-                if ($clientes[$i]->nro_cliente == $this->nro_cliente)
-                {
-                    $this->nombreArchivo = $clientes[$i]->nombreArchivo;
-                    $clientes[$i] = $this;
-                    $flagEncontrado = true;
-                    break;
-                }
-            }
-
-            if (!$flagEncontrado)
-            {
-                $this->nro_cliente = str_pad($this->nro_cliente, 6, '0', STR_PAD_LEFT);;
-                $clientes[] = $this;
-            }
-
-            Cliente::GuardarTodo($clientes, $rutaArchivo);
+            $cliente = Cliente::TraerUnCliente($this->nro_cliente, $this->tipoCliente);
+            if (isset($cliente))
+                $this->Modificar();
+            else
+                $this->Crear();
             
             return true;
+        }
+
+        private function Crear()
+        {
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO clientes (nro_cliente, nombre, tipoDocumento, numeroDocumento, email, tipoCliente, pais, ciudad, telefono, modalidadPago, estado, nombreArchivo) VALUES (:nro_cliente, :nombre, :tipoDocumento, :numeroDocumento, :email, :tipoCliente, :pais, :ciudad, :telefono, :modalidadPago, :estado, :nombreArchivo)");
+
+            $consulta->bindValue(':nro_cliente', $this->nro_cliente, PDO::PARAM_STR);
+            $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);
+            $consulta->bindValue(':tipoDocumento', $this->tipoDocumento, PDO::PARAM_STR);
+            $consulta->bindValue(':numeroDocumento', $this->numeroDocumento, PDO::PARAM_STR);
+            $consulta->bindValue(':email', $this->email, PDO::PARAM_STR);
+            $consulta->bindValue(':tipoCliente', $this->tipoCliente, PDO::PARAM_STR);
+            $consulta->bindValue(':pais', $this->pais, PDO::PARAM_STR);
+            $consulta->bindValue(':ciudad', $this->ciudad, PDO::PARAM_STR);
+            $consulta->bindValue(':telefono', $this->telefono, PDO::PARAM_STR);
+            $consulta->bindValue(':modalidadPago', $this->modalidadPago, PDO::PARAM_STR);
+            $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
+            $consulta->bindValue(':nombreArchivo', $this->nombreArchivo, PDO::PARAM_STR);
+
+            $consulta->execute();
+        }
+
+        private function Modificar()
+        {
+            $objAccesoDato = AccesoDatos::obtenerInstancia();
+            $consulta = $objAccesoDato->prepararConsulta("UPDATE clientes SET nombre = :nombre, tipoDocumento = :tipoDocumento, numeroDocumento = :numeroDocumento, email = :email, tipoCliente = :tipoCliente, pais = :pais, ciudad = :ciudad, telefono = :telefono, modalidadPago = :modalidadPago, estado = :estado WHERE nro_cliente = :nro_cliente");
+            $consulta->bindValue(':nro_cliente', $this->nro_cliente, PDO::PARAM_STR);
+            $consulta->bindValue(':nombre', $this->nombre, PDO::PARAM_STR);
+            $consulta->bindValue(':tipoDocumento', $this->tipoDocumento, PDO::PARAM_STR);
+            $consulta->bindValue(':numeroDocumento', $this->numeroDocumento, PDO::PARAM_STR);
+            $consulta->bindValue(':email', $this->email, PDO::PARAM_STR);
+            $consulta->bindValue(':tipoCliente', $this->tipoCliente, PDO::PARAM_STR);
+            $consulta->bindValue(':pais', $this->pais, PDO::PARAM_STR);
+            $consulta->bindValue(':ciudad', $this->ciudad, PDO::PARAM_STR);
+            $consulta->bindValue(':telefono', $this->telefono, PDO::PARAM_STR);
+            $consulta->bindValue(':modalidadPago', $this->modalidadPago, PDO::PARAM_STR);
+            $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
+            
+            $consulta->execute();
         }
 
         public function SetNroCliente()
@@ -126,63 +152,56 @@
             return $this->Insertar();
         }
 
-        public static function TraerTodo($rutaArchivo = "./datos/hoteles.json")
-        {
-            $objetoAccesoDato = new ManejadorArchivos($rutaArchivo);
-            $clientesNoParseados = $objetoAccesoDato->leer();
-            $clientes = [];
-            foreach ($clientesNoParseados as $clienteNoParseado) 
-            {
-                $cliente = new Cliente();
-                $cliente->nro_cliente = $clienteNoParseado["nro_cliente"];
-                $cliente->nombre = $clienteNoParseado["nombre"];
-                $cliente->tipoDocumento = $clienteNoParseado["tipoDocumento"];
-                $cliente->numeroDocumento = $clienteNoParseado["numeroDocumento"];
-                $cliente->email = $clienteNoParseado["email"];
-                $cliente->setTipoCliente($clienteNoParseado["tipoCliente"]);
-                $cliente->pais = $clienteNoParseado["pais"];
-                $cliente->ciudad = $clienteNoParseado["ciudad"];
-                $cliente->telefono = $clienteNoParseado["telefono"];
-                $cliente->estado = $clienteNoParseado["estado"];
-                $cliente->nombreArchivo = $clienteNoParseado["nombreArchivo"];
-                $cliente->modalidadPago = $clienteNoParseado["modalidadPago"];
-                $clientes[] = $cliente;
-            }
-            return $clientes;
-        }
 
-        public static function GuardarTodo($clientes, $rutaArchivo = "./datos/reservas.json")
+        
+        public static function TraerTodo()
         {
-            $objetoAccesoDato = new ManejadorArchivos($rutaArchivo);
-            $objetoAccesoDato->guardar($clientes);
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            $consulta = $objAccesoDatos->prepararConsulta("SELECT nro_cliente, nombre, tipoDocumento, numeroDocumento, email, tipoCliente, pais, ciudad, telefono, modalidadPago, estado, nombreArchivo FROM clientes");
+            $consulta->execute();
+    
+            return $consulta->fetchAll(PDO::FETCH_CLASS, 'Cliente');
         }
 
         public static function TraerUnCliente($nro_cliente, $tipoCliente)
         {
-            $clientes = Cliente::TraerTodo();
-            foreach ($clientes as $cliente) 
-            {
-                $clienteAux = new Cliente();
-                $clienteAux->setTipoCliente($tipoCliente);
-                if ($cliente->nro_cliente === $nro_cliente and $cliente->tipoCliente == $clienteAux->tipoCliente)
-                {
-                    return $cliente;
-                }
-            }
-        }
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            $clienteAux = new Cliente();
+            if ($clienteAux->setTipoCliente($tipoCliente))
+                $tipoCliente = $clienteAux->tipoCliente;
+            
+            $consulta = $objAccesoDatos->prepararConsulta("SELECT nro_cliente, nombre, tipoDocumento, numeroDocumento, email, tipoCliente, pais, ciudad, telefono, modalidadPago, estado, nombreArchivo FROM clientes WHERE nro_cliente = :nro_cliente AND tipoCliente = :tipoCliente");
 
+            
+            $consulta->bindValue(':nro_cliente', $nro_cliente, PDO::PARAM_STR);
+            $consulta->bindValue(':tipoCliente', $tipoCliente, PDO::PARAM_STR);
+            $consulta->execute();
+            
+            $resultado = $consulta->fetchObject('Cliente');
+            if ($resultado === false)
+                return null;
+
+            return $resultado;
+        }
         public static function TraerUnClienteNombreTipo($nombreCliente, $tipoCliente)
         {
-            $clientes = Cliente::TraerTodo();
-            foreach ($clientes as $cliente) 
-            {
-                $clienteAux = new Cliente();
-                $clienteAux->setTipoCliente($tipoCliente);
-                if ($cliente->nombre === $nombreCliente and $cliente->tipoCliente == $clienteAux->tipoCliente)
-                {
-                    return $cliente;
-                }
-            }
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            
+            $clienteAux = new Cliente();
+            if ($clienteAux->setTipoCliente($tipoCliente))
+                $tipoCliente = $clienteAux->tipoCliente;
+
+            $consulta = $objAccesoDatos->prepararConsulta("SELECT nro_cliente, nombre, tipoDocumento, numeroDocumento, email, tipoCliente, pais, ciudad, telefono, modalidadPago, estado, nombreArchivo FROM clientes WHERE nombreCliente = :nombreCliente AND tipoCliente = :tipoCliente");
+
+            
+            $consulta->bindValue(':nombreCliente', $nombreCliente, PDO::PARAM_STR);
+            $consulta->bindValue(':tipoCliente', $tipoCliente, PDO::PARAM_STR);
+            $consulta->execute();
+
+            if ($consulta->fetchObject('Cliente') === false)
+                return null;
+            
+            return $consulta->fetchObject('Cliente');
         }
     }
 ?>

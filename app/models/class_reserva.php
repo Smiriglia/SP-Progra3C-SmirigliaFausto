@@ -25,54 +25,53 @@
             return false;
         }
 
-        public function Insertar($rutaArchivo = "./datos/reservas.json")
+        public function Insertar()
         {
-            $accesoUltimoIdReservas = new ManejadorArchivos("./datos/ultimo_id_reservas.json");
-            $objetoUltimoIdReservas = $accesoUltimoIdReservas->leer();
-            
-            $objetoAccesoDato = new ManejadorArchivos($rutaArchivo);
-            $reservas = $objetoAccesoDato->leer();
-
-            
-
-            $objetoUltimoIdReservas["id"] += 1;
-            $this->id = $objetoUltimoIdReservas["id"];
             $this->estado = "Activo";
-            $reservas[] = $this;
-
-            $objetoAccesoDato->guardar($reservas);
-            $accesoUltimoIdReservas->guardar($objetoUltimoIdReservas);
-            
-            return $this->id;
+            return $this->Crear();
         }
-        public function Actualizar($rutaArchivo = "./datos/reservas.json")
+
+
+        private function Crear()
         {
-            
-            $respuesta = [];
-            $reservas = Reserva::TraerTodo();
-            $indiceReserva = -1;
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO reservas (tipoCliente, nro_cliente, fechaEntrada, fechaSalida, tipoHabitacion, importeTotal, modalidadPago, estado, motivoAjuste) VALUES (:tipoCliente, :nro_cliente, :fechaEntrada, :fechaSalida, :tipoHabitacion, :importeTotal, :modalidadPago, :estado, :motivoAjuste)");
 
-            for ($i = 0; $i < count($reservas); $i++) {
-                if ($reservas[$i]->id === $this->id)
-                {
-                    $indiceReserva = $i;
-                    break;
-                }
-            }
-            
-            if ($indiceReserva != -1)
-            {
-                $reservas[$indiceReserva] = $this;
-                Reserva::GuardarTodo($reservas);
-                $respuesta["mensaje"] = "Se ha actualizado correctamente la reserva";
-            }
-            else
-            {
-                $respuesta["error"] = "Error, no se pudo actualizar la reserva";
-            }
+            $consulta->bindValue(':tipoCliente', $this->tipoCliente, PDO::PARAM_STR);
+            $consulta->bindValue(':nro_cliente', $this->nro_cliente, PDO::PARAM_STR);
+            $consulta->bindValue(':fechaEntrada', $this->fechaEntrada, PDO::PARAM_STR);
+            $consulta->bindValue(':fechaSalida', $this->fechaSalida, PDO::PARAM_STR);
+            $consulta->bindValue(':tipoHabitacion', $this->tipoHabitacion, PDO::PARAM_STR);
+            $consulta->bindValue(':importeTotal', $this->importeTotal, PDO::PARAM_INT);
+            $consulta->bindValue(':modalidadPago', $this->modalidadPago, PDO::PARAM_STR);
+            $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
+            $consulta->bindValue(':motivoAjuste', $this->motivoAjuste, PDO::PARAM_STR);
 
-            return $respuesta;
+            $consulta->execute();
 
+            return $objAccesoDatos->obtenerUltimoId();
+        }
+
+        public function Actualizar()
+        {
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            $consulta = $objAccesoDatos->prepararConsulta("UPDATE reservas SET tipoCliente = :tipoCliente, nro_cliente = :nro_cliente, fechaEntrada = :fechaEntrada, fechaSalida = :fechaSalida, tipoHabitacion = :tipoHabitacion, importeTotal = :importeTotal, modalidadPago = :modalidadPago, estado = :estado, motivoAjuste = :motivoAjuste WHERE id = :id");
+
+            $consulta->bindValue(':id', $this->id, PDO::PARAM_INT);
+            $consulta->bindValue(':tipoCliente', $this->tipoCliente, PDO::PARAM_STR);
+            $consulta->bindValue(':nro_cliente', $this->nro_cliente, PDO::PARAM_STR);
+            $consulta->bindValue(':fechaEntrada', $this->fechaEntrada, PDO::PARAM_STR);
+            $consulta->bindValue(':fechaSalida', $this->fechaSalida, PDO::PARAM_STR);
+            $consulta->bindValue(':tipoHabitacion', $this->tipoHabitacion, PDO::PARAM_STR);
+            $consulta->bindValue(':importeTotal', $this->importeTotal, PDO::PARAM_INT);
+            $consulta->bindValue(':modalidadPago', $this->modalidadPago, PDO::PARAM_STR);
+            $consulta->bindValue(':estado', $this->estado, PDO::PARAM_STR);
+            $consulta->bindValue(':motivoAjuste', $this->motivoAjuste, PDO::PARAM_STR);
+
+            $consulta->execute();
+
+
+            return ["mensaje" => "Se ha actualizado correctamente la reserva"];
         }
 
         public function Cancelar()
@@ -93,27 +92,13 @@
         }
         
 
-        public static function TraerTodo($rutaArchivo = "./datos/reservas.json")
+        public static function TraerTodo()
         {
-            $objetoAccesoDato = new ManejadorArchivos($rutaArchivo);
-            $reservasNoParseados = $objetoAccesoDato->leer();
-            $reservas = [];
-            foreach ($reservasNoParseados as $reservaNoParseado) 
-            {
-                $reserva = new Reserva();
-                $reserva->id = $reservaNoParseado["id"];
-                $reserva->nro_cliente = $reservaNoParseado["nro_cliente"];
-                $reserva->fechaEntrada = $reservaNoParseado["fechaEntrada"];
-                $reserva->fechaSalida = $reservaNoParseado["fechaSalida"];
-                $reserva->setTipoHabitacion($reservaNoParseado["tipoHabitacion"]);
-                $reserva->tipoCliente = $reservaNoParseado["tipoCliente"];
-                $reserva->importeTotal = $reservaNoParseado["importeTotal"];
-                $reserva->estado = $reservaNoParseado["estado"];
-                $reserva->motivoAjuste = $reservaNoParseado["motivoAjuste"];
-                $reserva->modalidadPago = $reservaNoParseado["modalidadPago"];
-                $reservas[] = $reserva;
-            }
-            return $reservas;
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM reservas");
+            $consulta->execute();
+
+            return $consulta->fetchAll(PDO::FETCH_CLASS, 'Reserva');
         }
 
         public static function GuardarTodo($reservas, $rutaArchivo = "./datos/reservas.json")
@@ -124,14 +109,18 @@
 
         public static function TraerUnaReserva($id)
         {
-            $reservas = Reserva::TraerTodo();
-            foreach ($reservas as $reserva) 
-            {
-                if ($reserva->id == $id)
-                {
-                    return $reserva;
-                }
-            }
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            
+            $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM reservas WHERE id = :id");
+            
+            $consulta->bindValue(':id', $id, PDO::PARAM_STR);
+            $consulta->execute();
+            
+            $resultado = $consulta->fetchObject('Reserva');
+            if ($resultado === false)
+                return null;
+
+            return $resultado;
         }
 
         public static function CalcularTotalReservas($tipoHabitacion, $fecha){

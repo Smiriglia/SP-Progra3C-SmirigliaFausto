@@ -17,58 +17,42 @@
             return false;
         }
 
-        public function Insertar($rutaArchivo = "./datos/ajustes.json")
+        public function Insertar()
         {
-            $accesoUltimoIdAjustes = new ManejadorArchivos("./datos/ultimo_id_ajustes.json");
-            $objetoUltimoIdAjustes = $accesoUltimoIdAjustes->leer();
-            
-            $ajustes = AjusteReserva::TraerTodo();
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            $consulta = $objAccesoDatos->prepararConsulta("INSERT INTO ajustes (idReserva, motivo) VALUES (:idReserva, :motivo)");
 
-            
+            $consulta->bindValue(':idReserva', $this->idReserva, PDO::PARAM_STR);
+            $consulta->bindValue(':motivo', $this->motivo, PDO::PARAM_STR);
+            $consulta->execute();
 
-            $objetoUltimoIdAjustes["id"] += 1;
-            $this->id = $objetoUltimoIdAjustes["id"];
-            $ajustes[] = $this;
-
-            AjusteReserva::GuardarTodo($ajustes, $rutaArchivo);
-            $accesoUltimoIdAjustes->guardar($objetoUltimoIdAjustes);
-            
-            return $this->id;
+            return $objAccesoDatos->obtenerUltimoId();
         }
         
 
-        public static function TraerTodo($rutaArchivo = "./datos/ajustes.json")
+        public static function TraerTodo()
         {
-            $objetoAccesoDato = new ManejadorArchivos($rutaArchivo);
-            $ajustesNoParseados = $objetoAccesoDato->leer();
-            $ajustes = [];
-            foreach ($ajustesNoParseados as $ajusteNoParseado) 
-            {
-                $ajuste = new AjusteReserva();
-                $ajuste->id = $ajusteNoParseado["id"];
-                $ajuste->idReserva = $ajusteNoParseado["idReserva"];
-                $ajuste->motivo = $ajusteNoParseado["motivo"];
-                $ajustes[] = $ajuste;
-            }
-            return $ajustes;
-        }
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM ajustes");
+            $consulta->execute();
 
-        public static function GuardarTodo($ajustes, $rutaArchivo = "./datos/ajustes.json")
-        {
-            $objetoAccesoDato = new ManejadorArchivos($rutaArchivo);
-            $objetoAccesoDato->guardar($ajustes);
+            return $consulta->fetchAll(PDO::FETCH_CLASS, 'Ajuste');
         }
 
         public static function TraerUnaReserva($id)
         {
-            $ajustes = AjusteReserva::TraerTodo();
-            foreach ($ajustes as $ajuste) 
-            {
-                if ($ajuste->id == $id)
-                {
-                    return $ajuste;
-                }
-            }
+            $objAccesoDatos = AccesoDatos::obtenerInstancia();
+            
+            $consulta = $objAccesoDatos->prepararConsulta("SELECT * FROM ajustes WHERE id = :id");
+            
+            $consulta->bindValue(':id', $id, PDO::PARAM_STR);
+            $consulta->execute();
+            
+            $resultado = $consulta->fetchObject('Ajuste');
+            if ($resultado === false)
+                return null;
+
+            return $resultado;
         }
     }
 ?>

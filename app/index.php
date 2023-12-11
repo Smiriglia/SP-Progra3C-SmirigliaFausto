@@ -14,6 +14,10 @@ require_once("./controllers/cliente_controller.php");
 require_once("./middlewares\autenticador_usuarios.php");
 require_once("./middlewares\autenticador_reservas.php");
 
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->safeLoad();
+
+
 // Instantiate App
 $app = AppFactory::create();
 

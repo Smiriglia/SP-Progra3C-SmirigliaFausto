@@ -50,7 +50,7 @@
             $telefono = $params["telefono"];
 
             if (!isset($params["modalidadPago"]))
-                $modalidadPago = "Efectivo";
+                $modalidadPago = "efectivo";
             else
                 $modalidadPago = $params["modalidadPago"];
 
@@ -70,7 +70,11 @@
             
             if ($cliente->setTipoCliente($tipoCliente) and $cliente->SetTipoDocumento($tipoDocumento) and $cliente->SetNumeroDocumento($numeroDocumento))
             {
-                $cliente->SetNroCliente();
+                if (!isset($params['nro_cliente']))
+                    $cliente->SetNroCliente();
+                else
+                    $cliente->nro_cliente = $params['nro_cliente'];
+
                 if ($fotoPerfil != null)
                 {
                     $respuestaArchivo = $this->SubirFotoPerfil($fotoPerfil, $cliente);
@@ -114,12 +118,11 @@
             $nroCliente = $params["nro_cliente"];
             $tipoCliente = $params["tipoCliente"];
             $cliente = Cliente::TraerUnCliente($nroCliente, $tipoCliente);
-
-            $paqueteRespuesta = new PaqueteRespuesta();
+            
             if (isset($cliente))
             {
                 if ($cliente->estado != "Eliminado")
-                $paqueteRespuesta->SetExito(["mensaje" => $cliente->MostrarDatos()]);
+                    $paqueteRespuesta->SetExito(["mensaje" => $cliente->MostrarDatos()]);
                 else
                     $paqueteRespuesta->SetError(["error" => "El cliente que intentas consultar esta eliminado"]);
             }

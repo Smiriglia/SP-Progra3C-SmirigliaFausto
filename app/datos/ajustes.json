@@ -23,5 +23,15 @@
         "id": 5,
         "idReserva": 24,
         "motivo": "Cambio de habitacion"
+    },
+    {
+        "id": 6,
+        "idReserva": 1,
+        "motivo": "Cambio de habitacion"
+    },
+    {
+        "id": 7,
+        "idReserva": 3,
+        "motivo": "Cambio de habitacion"
     }
 ]
