@@ -129,7 +129,8 @@
             $accesoUltimoNroCliente = new ManejadorArchivos("./datos/ultimo_nro_cliente.json");
             $objetoUltimoNroCliente = $accesoUltimoNroCliente->leer();
 
-            foreach ($clientes as $cliente) {
+            foreach ($clientes as $cliente)
+            {
                 if ($cliente->nombre == $this->nombre and $cliente->tipoCliente == $this->tipoCliente)
                 {
                     $this->nro_cliente = $cliente->nro_cliente;
@@ -186,7 +187,7 @@
         public static function TraerUnClienteNombreTipo($nombreCliente, $tipoCliente)
         {
             $objAccesoDatos = AccesoDatos::obtenerInstancia();
-            
+
             $clienteAux = new Cliente();
             if ($clienteAux->setTipoCliente($tipoCliente))
                 $tipoCliente = $clienteAux->tipoCliente;

@@ -11,8 +11,14 @@ use Slim\Routing\RouteCollectorProxy;
 require __DIR__ . '/../vendor/autoload.php';
 require_once("./controllers/reserva_controller.php");
 require_once("./controllers/cliente_controller.php");
+require_once("./controllers/usuario_controller.php");
+require_once("./controllers/log_accesos_controller.php");
+require_once("./controllers/log_transacciones_controller.php");
 require_once("./middlewares\autenticador_usuarios.php");
+require_once("./middlewares\autenticador_clientes.php");
 require_once("./middlewares\autenticador_reservas.php");
+require_once("./middlewares\logger.php");
+require_once("./middlewares\log_middleware.php");
 
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->safeLoad();
@@ -32,21 +38,24 @@ $app->addBodyParsingMiddleware();
 $app->get('[/]', function (Request $request, Response $response) {    
     $response->getBody()->write("GET => Bienvenido!!! a SlimFramework");
     return $response;
-
 });
 
 $app->group('/cliente', function (RouteCollectorProxy $group) {
     $group->post('/crear', \ClienteController::class . ':Insertar')
-    ->add(\AutenticadorUsuario::class.':VerificarParametrosCrearCliente');
+    ->add(\AutenticadorCliente::class.':VerificarParametrosCrearCliente')
+    ->add(\AutenticadorUsuario::class.':ValidarPermisosDeRol')
+    ->add(\Logger::class.':ValidarSesionIniciada');
 
     $group->post('/consultar', \ClienteController::class . ':ConsultarCliente')
-    ->add(\AutenticadorUsuario::class.':VerificarParametrosConsultarCliente');
+    ->add(\AutenticadorCliente::class.':VerificarParametrosConsultarCliente');
 
     $group->post('/modificar', \ClienteController::class . ':Insertar')
-    ->add(\AutenticadorUsuario::class.':VerificarParametrosConsultarCliente');
+    ->add(\AutenticadorCliente::class.':VerificarParametrosConsultarCliente');
 
     $group->delete('/eliminar', \ClienteController::class . ':EliminarCliente')
-    ->add(\AutenticadorUsuario::class.':VerificarParametrosEliminarCliente');
+    ->add(\AutenticadorCliente::class.':VerificarParametrosEliminarCliente')
+    ->add(\AutenticadorUsuario::class.':ValidarPermisosDeRol')
+    ->add(\Logger::class.':ValidarSesionIniciada');
 
 });
 
@@ -91,6 +100,27 @@ $app->group('/reserva', function (RouteCollectorProxy $group) {
         ->add(\AutenticadorReserva::class.':VerificarParametroModalidadPago');
 
     });
+})
+->add(\AutenticadorUsuario::class.':ValidarPermisosDeRolClienteRecepcionista')
+->add(\Logger::class.':ValidarSesionIniciada');
+
+$app->group("/usuario", function (RouteCollectorProxy $group) {
+    $group->post('/crear', \UsuarioController::class . ':CargarUno')
+    ->add(\AutenticadorUsuario::class.':ValidarCamposAlta');
+
+    $group->group('/sesion', function (RouteCollectorProxy $group) {
+        $group->post('[/]', \Logger::class.'::Loguear')
+        ->add(\AutenticadorUsuario::class.':ValidarCamposLogIn');
+        $group->get('[/]', \Logger::class.':Salir');
+    })
+    ->add(\Logger::class.':LimpiarCoockieUsuario');
 });
 
+$app->group("/log", function (RouteCollectorProxy $group) {
+    $group->get('/acceso', \LogAccesosController::class . ':ExportarPDF');
+    $group->get('/transaccion', \LogTransaccionesController::class . ':ExportarCSV');
+});
+
+$app->add(\LogMiddleware::class.':LogTransaccion');
+$app->add(\LogMiddleware::class.':LogAcceso');
 $app->run();
